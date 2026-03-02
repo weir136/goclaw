@@ -26,6 +26,8 @@ var credentialPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)[A-Z_]*(KEY|SECRET|CREDENTIAL|PRIVATE)[A-Z_]*\s*=\s*[^\[\s]{8,}`),
 	// DSN/DATABASE_URL env vars (skip already-redacted values)
 	regexp.MustCompile(`(?i)(DSN|DATABASE_URL|REDIS_URL|MONGO_URI)\s*=\s*[^\[\s]{8,}`),
+	// VIRTUAL_* env vars (internal runtime config, should not leak)
+	regexp.MustCompile(`(?i)VIRTUAL_[A-Z_]+\s*=\s*[^\[\s]{4,}`),
 	// Long hex strings (64+ chars) — likely encryption keys, hashes, or secrets
 	regexp.MustCompile(`[a-fA-F0-9]{64,}`),
 }

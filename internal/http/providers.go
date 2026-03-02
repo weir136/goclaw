@@ -180,7 +180,7 @@ func (h *ProvidersHandler) handleUpdateProvider(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// Strip masked API key — don't overwrite real key with "***"
+	// Strip masked API key — don't overwrite real value with "***"
 	if apiKey, ok := updates["api_key"]; ok {
 		if s, _ := apiKey.(string); s == "***" || s == "" {
 			delete(updates, "api_key")

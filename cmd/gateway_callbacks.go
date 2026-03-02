@@ -9,14 +9,16 @@ import (
 
 	"github.com/nextlevelbuilder/goclaw/internal/agent"
 	"github.com/nextlevelbuilder/goclaw/internal/bootstrap"
+	"github.com/nextlevelbuilder/goclaw/internal/bus"
 	"github.com/nextlevelbuilder/goclaw/internal/store"
 	"github.com/nextlevelbuilder/goclaw/internal/tools"
+	"github.com/nextlevelbuilder/goclaw/pkg/protocol"
 )
 
 // buildEnsureUserFiles creates the per-user file seeding callback.
 // Used by both managed and standalone modes — no mode-specific logic.
 // Seeds per-user context files on first chat (new user profile).
-func buildEnsureUserFiles(as store.AgentStore) agent.EnsureUserFilesFunc {
+func buildEnsureUserFiles(as store.AgentStore, msgBus *bus.MessageBus) agent.EnsureUserFilesFunc {
 	return func(ctx context.Context, agentID uuid.UUID, userID, agentType, workspace, channel string) (string, error) {
 		isNew, effectiveWs, err := as.GetOrCreateUserProfile(ctx, agentID, userID, workspace, channel)
 		if err != nil {
@@ -38,6 +40,11 @@ func buildEnsureUserFiles(as store.AgentStore) agent.EnsureUserFilesFunc {
 				}
 				if addErr := as.AddGroupFileWriter(ctx, agentID, userID, numericID, "", senderUsername); addErr != nil {
 					slog.Warn("failed to auto-add group file writer", "error", addErr, "sender", numericID, "group", userID)
+				} else if msgBus != nil {
+					msgBus.Broadcast(bus.Event{
+						Name:    protocol.EventCacheInvalidate,
+						Payload: bus.CacheInvalidatePayload{Kind: bus.CacheKindGroupFileWriters, Key: userID},
+					})
 				}
 			}
 		}

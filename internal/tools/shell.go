@@ -121,6 +121,9 @@ var defaultDenyPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\bprintenv\b`),                                    // any printenv usage
 	regexp.MustCompile(`^\s*(set|export\s+-p|declare\s+-x)\s*($|\|)`),     // shell var dumps
 	regexp.MustCompile(`\bcompgen\s+-e\b`),                                // bash env completion dump
+	regexp.MustCompile(`/proc/[^/]+/environ`),                             // /proc/PID/environ (leaks all env vars)
+	regexp.MustCompile(`/proc/self/environ`),                              // /proc/self/environ
+	regexp.MustCompile(`(?i)\bstrings\b.*/proc/`),                        // strings on /proc files (binary env dump)
 }
 
 // ExecTool executes shell commands, optionally inside a sandbox container.
@@ -157,6 +160,15 @@ func NewSandboxedExecTool(workingDir string, restrict bool, mgr sandbox.Manager)
 
 // SetSandboxKey is a no-op; sandbox key is now read from ctx (thread-safe).
 func (t *ExecTool) SetSandboxKey(key string) {}
+
+// DenyPaths adds dynamic deny patterns that block commands referencing the given paths.
+// Used to prevent exec from reading/copying files from sensitive directories (e.g. data dir, .goclaw).
+func (t *ExecTool) DenyPaths(paths ...string) {
+	for _, p := range paths {
+		escaped := regexp.QuoteMeta(p)
+		t.denyPatterns = append(t.denyPatterns, regexp.MustCompile(escaped))
+	}
+}
 
 // SetApprovalManager sets the exec approval manager for this tool.
 func (t *ExecTool) SetApprovalManager(mgr *ExecApprovalManager, agentID string) {

@@ -12,11 +12,17 @@ import (
 // CronTool lets agents manage Gateway cron jobs.
 // Matching OpenClaw src/agents/tools/cron-tool.ts.
 type CronTool struct {
-	cronStore store.CronStore
+	cronStore        store.CronStore
+	groupWriterCache *store.GroupWriterCache // nil = no group restriction (standalone mode)
 }
 
 func NewCronTool(cronStore store.CronStore) *CronTool {
 	return &CronTool{cronStore: cronStore}
+}
+
+// SetGroupWriterCache enables group cron mutation restriction (managed mode).
+func (t *CronTool) SetGroupWriterCache(c *store.GroupWriterCache) {
+	t.groupWriterCache = c
 }
 
 func (t *CronTool) Name() string { return "cron" }
@@ -107,6 +113,13 @@ func (t *CronTool) Execute(ctx context.Context, args map[string]interface{}) *Re
 	action, _ := args["action"].(string)
 	if action == "" {
 		return ErrorResult("action parameter is required")
+	}
+
+	// Group write permission check for mutation actions (managed mode)
+	if t.groupWriterCache != nil && (action == "add" || action == "update" || action == "remove") {
+		if err := store.CheckGroupWritePermission(ctx, t.groupWriterCache); err != nil {
+			return ErrorResult("permission denied: only file writers can manage cron jobs in group chats")
+		}
 	}
 
 	agentID := resolveAgentIDString(ctx)

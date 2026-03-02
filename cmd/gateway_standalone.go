@@ -77,7 +77,7 @@ func wireStandaloneExtras(
 	contextFileInterceptor := tools.NewContextFileInterceptor(fileStore, workspace)
 
 	// Build callbacks using shared builders
-	ensureUserFiles = buildEnsureUserFiles(fileStore)
+	ensureUserFiles = buildEnsureUserFiles(fileStore, nil)
 	contextFileLoader = buildContextFileLoader(contextFileInterceptor)
 
 	// Wire interceptors to filesystem tools (read_file, write_file, edit)

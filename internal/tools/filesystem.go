@@ -11,6 +11,7 @@ import (
 
 	"github.com/nextlevelbuilder/goclaw/internal/bootstrap"
 	"github.com/nextlevelbuilder/goclaw/internal/sandbox"
+	"github.com/nextlevelbuilder/goclaw/internal/store"
 )
 
 // virtualSystemFiles are files dynamically injected into the system prompt.
@@ -23,13 +24,14 @@ var virtualSystemFiles = map[string]string{
 
 // ReadFileTool reads file contents, optionally through a sandbox container.
 type ReadFileTool struct {
-	workspace       string
-	restrict        bool
-	allowedPrefixes []string              // extra allowed path prefixes (e.g. skills dirs)
-	deniedPrefixes  []string              // path prefixes to deny access to (e.g. .goclaw)
-	sandboxMgr      sandbox.Manager       // nil = direct host access
-	contextFileIntc *ContextFileInterceptor // nil = no virtual FS routing (standalone mode)
-	memIntc         *MemoryInterceptor      // nil = no memory routing (standalone mode)
+	workspace        string
+	restrict         bool
+	allowedPrefixes  []string              // extra allowed path prefixes (e.g. skills dirs)
+	deniedPrefixes   []string              // path prefixes to deny access to (e.g. .goclaw)
+	sandboxMgr       sandbox.Manager       // nil = direct host access
+	contextFileIntc  *ContextFileInterceptor // nil = no virtual FS routing (standalone mode)
+	memIntc          *MemoryInterceptor      // nil = no memory routing (standalone mode)
+	groupWriterCache *store.GroupWriterCache  // nil = no group read restriction (standalone mode)
 }
 
 // SetContextFileInterceptor enables virtual FS routing for context files (managed mode).
@@ -40,6 +42,11 @@ func (t *ReadFileTool) SetContextFileInterceptor(intc *ContextFileInterceptor) {
 // SetMemoryInterceptor enables virtual FS routing for memory files (managed mode).
 func (t *ReadFileTool) SetMemoryInterceptor(intc *MemoryInterceptor) {
 	t.memIntc = intc
+}
+
+// SetGroupWriterCache enables group read restriction for SOUL.md/AGENTS.md (managed mode).
+func (t *ReadFileTool) SetGroupWriterCache(c *store.GroupWriterCache) {
+	t.groupWriterCache = c
 }
 
 func NewReadFileTool(workspace string, restrict bool) *ReadFileTool {
@@ -83,6 +90,16 @@ func (t *ReadFileTool) Execute(ctx context.Context, args map[string]interface{})
 	path, _ := args["path"].(string)
 	if path == "" {
 		return ErrorResult("path is required")
+	}
+
+	// Group read restriction: block non-writers from reading SOUL.md/AGENTS.md (managed mode)
+	if t.groupWriterCache != nil {
+		base := filepath.Base(path)
+		if base == bootstrap.SoulFile || base == bootstrap.AgentsFile {
+			if err := store.CheckGroupWritePermission(ctx, t.groupWriterCache); err != nil {
+				return ErrorResult(fmt.Sprintf("permission denied: %s is restricted in this group", base))
+			}
+		}
 	}
 
 	// Virtual FS: route context files to DB (managed mode)

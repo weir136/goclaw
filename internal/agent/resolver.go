@@ -59,6 +59,9 @@ type ResolverDeps struct {
 
 	// Builtin tool settings (managed mode)
 	BuiltinToolStore store.BuiltinToolStore // nil if not managed
+
+	// Group file writer cache (managed mode)
+	GroupWriterCache *store.GroupWriterCache
 }
 
 // NewManagedResolver creates a ResolverFunc that builds Loops from DB agent data.
@@ -289,6 +292,7 @@ func NewManagedResolver(deps ResolverDeps) ResolverFunc {
 			SandboxWorkspaceAccess: sandboxWorkspaceAccess,
 			BuiltinToolSettings:    builtinSettings,
 			ThinkingLevel:         ag.ParseThinkingLevel(),
+			GroupWriterCache:      deps.GroupWriterCache,
 		})
 
 		slog.Info("resolved agent from DB", "agent", agentKey, "model", ag.Model, "provider", ag.Provider)
@@ -431,6 +435,8 @@ func buildTeamMD(team *store.TeamData, members []store.TeamMemberData, selfID uu
 		sb.WriteString("spawn agent=writer, task=\"...\", team_task_id=B\n")
 		sb.WriteString("```\n\n")
 		sb.WriteString("The system ENFORCES this — spawn with agent but without team_task_id will be rejected.\n")
+		sb.WriteString("⚠️ `team_tasks create` alone does NOTHING — the task stays pending forever until you `spawn`.\n")
+		sb.WriteString("You MUST call `spawn` in the SAME turn. Do NOT respond with text before spawning.\n")
 		sb.WriteString("Each task auto-completes when its delegation finishes.\n\n")
 		sb.WriteString("When multiple delegations run in parallel, the system collects ALL results and delivers\n")
 		sb.WriteString("them to you in a single combined notification. Do NOT present partial results.\n\n")

@@ -7,16 +7,18 @@ import (
 	"path/filepath"
 
 	"github.com/nextlevelbuilder/goclaw/internal/sandbox"
+	"github.com/nextlevelbuilder/goclaw/internal/store"
 )
 
 // WriteFileTool writes content to a file, optionally through a sandbox container.
 type WriteFileTool struct {
-	workspace       string
-	restrict        bool
-	deniedPrefixes  []string // path prefixes to deny access to (e.g. .goclaw)
-	sandboxMgr      sandbox.Manager
-	contextFileIntc *ContextFileInterceptor // nil = no virtual FS routing (standalone mode)
-	memIntc         *MemoryInterceptor      // nil = no memory routing (standalone mode)
+	workspace        string
+	restrict         bool
+	deniedPrefixes   []string // path prefixes to deny access to (e.g. .goclaw)
+	sandboxMgr       sandbox.Manager
+	contextFileIntc  *ContextFileInterceptor // nil = no virtual FS routing (standalone mode)
+	memIntc          *MemoryInterceptor      // nil = no memory routing (standalone mode)
+	groupWriterCache *store.GroupWriterCache  // nil = no group write restriction (standalone mode)
 }
 
 // DenyPaths adds path prefixes that write_file must reject.
@@ -32,6 +34,11 @@ func (t *WriteFileTool) SetContextFileInterceptor(intc *ContextFileInterceptor) 
 // SetMemoryInterceptor enables virtual FS routing for memory files (managed mode).
 func (t *WriteFileTool) SetMemoryInterceptor(intc *MemoryInterceptor) {
 	t.memIntc = intc
+}
+
+// SetGroupWriterCache enables group write permission checks (managed mode).
+func (t *WriteFileTool) SetGroupWriterCache(c *store.GroupWriterCache) {
+	t.groupWriterCache = c
 }
 
 func NewWriteFileTool(workspace string, restrict bool) *WriteFileTool {
@@ -74,6 +81,13 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]interface{}
 	deliver, _ := args["deliver"].(bool)
 	if path == "" {
 		return ErrorResult("path is required")
+	}
+
+	// Group write permission check (managed mode)
+	if t.groupWriterCache != nil {
+		if err := store.CheckGroupWritePermission(ctx, t.groupWriterCache); err != nil {
+			return ErrorResult(err.Error())
+		}
 	}
 
 	// Virtual FS: route context files to DB (managed mode)

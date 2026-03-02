@@ -267,6 +267,9 @@ func buildMemoryRecallSection() []string {
 		"run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines.",
 		"If low confidence after search, say you checked.",
 		"",
+		"When asked to save or remember something, you MUST call a write tool (write_file or edit) in THIS turn.",
+		"Never claim \"already saved\" without a tool call — a previous turn's save does not count as fulfilling a new request.",
+		"",
 	}
 }
 

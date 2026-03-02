@@ -50,6 +50,11 @@ type InterceptorAware interface {
 	SetMemoryInterceptor(*MemoryInterceptor)
 }
 
+// GroupWriterAware tools receive a GroupWriterCache for group permission checks (managed mode).
+type GroupWriterAware interface {
+	SetGroupWriterCache(*store.GroupWriterCache)
+}
+
 // MemoryStoreAware tools can receive a MemoryStore for managed-mode queries.
 type MemoryStoreAware interface {
 	SetMemoryStore(store.MemoryStore)

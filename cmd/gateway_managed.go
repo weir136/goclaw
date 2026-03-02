@@ -50,10 +50,16 @@ func wireManagedExtras(
 		contextFileInterceptor = tools.NewContextFileInterceptor(stores.Agents, workspace)
 	}
 
+	// 1b. Group writer cache (wraps ListGroupFileWriters with TTL cache)
+	var groupWriterCache *store.GroupWriterCache
+	if stores.Agents != nil {
+		groupWriterCache = store.NewGroupWriterCache(stores.Agents)
+	}
+
 	// 2. User seeding callback: seeds per-user context files on first chat
 	var ensureUserFiles agent.EnsureUserFilesFunc
 	if stores.Agents != nil {
-		ensureUserFiles = buildEnsureUserFiles(stores.Agents)
+		ensureUserFiles = buildEnsureUserFiles(stores.Agents, msgBus)
 	}
 
 	// 3. Context file loader callback: loads per-user context files dynamically
@@ -100,6 +106,7 @@ func wireManagedExtras(
 		AgentLinkStore:         stores.AgentLinks,
 		TeamStore:              stores.Teams,
 		BuiltinToolStore:       stores.BuiltinTools,
+		GroupWriterCache:       groupWriterCache,
 		OnEvent: func(event agent.AgentEvent) {
 			msgBus.Broadcast(bus.Event{
 				Name:    protocol.EventAgent,
@@ -140,6 +147,20 @@ func wireManagedExtras(
 			if stores.Memory != nil {
 				ia.SetMemoryInterceptor(tools.NewMemoryInterceptor(stores.Memory, workspace))
 			}
+		}
+	}
+
+	// Wire group writer cache for permission checks (managed mode only)
+	if groupWriterCache != nil {
+		for _, toolName := range []string{"read_file", "write_file", "edit", "cron"} {
+			if t, ok := toolsReg.Get(toolName); ok {
+				if gwa, ok := t.(tools.GroupWriterAware); ok {
+					gwa.SetGroupWriterCache(groupWriterCache)
+				}
+			}
+		}
+		if contextFileInterceptor != nil {
+			contextFileInterceptor.SetGroupWriterCache(groupWriterCache)
 		}
 	}
 
@@ -381,6 +402,24 @@ func wireManagedExtras(
 			agentRouter.InvalidateUserWorkspace(payload.Key)
 		}
 	})
+
+	// Group writer cache: invalidate on writer list changes
+	if groupWriterCache != nil {
+		msgBus.Subscribe(bus.TopicCacheGroupFileWriters, func(event bus.Event) {
+			if event.Name != protocol.EventCacheInvalidate {
+				return
+			}
+			payload, ok := event.Payload.(bus.CacheInvalidatePayload)
+			if !ok || payload.Kind != bus.CacheKindGroupFileWriters {
+				return
+			}
+			if payload.Key != "" {
+				groupWriterCache.Invalidate(payload.Key)
+			} else {
+				groupWriterCache.InvalidateAll()
+			}
+		})
+	}
 
 	slog.Info("managed mode: resolver + interceptors + cache subscribers wired")
 	return contextFileInterceptor

@@ -79,13 +79,14 @@ type contextCacheEntry struct {
 // Used in managed mode to keep SOUL.md, IDENTITY.md etc. in Postgres.
 // Routes based on agent type: "open" → all per-user, "predefined" → only USER.md per-user.
 type ContextFileInterceptor struct {
-	agentStore store.AgentStore
-	workspace  string // workspace root for matching absolute paths
-	mu         sync.RWMutex
-	cache      map[uuid.UUID]*contextCacheEntry // agent-level files
-	userCache  map[string]*contextCacheEntry     // "agentID:userID" → user files
-	maxEntries int
-	ttl        time.Duration
+	agentStore       store.AgentStore
+	workspace        string // workspace root for matching absolute paths
+	mu               sync.RWMutex
+	cache            map[uuid.UUID]*contextCacheEntry // agent-level files
+	userCache        map[string]*contextCacheEntry     // "agentID:userID" → user files
+	maxEntries       int
+	ttl              time.Duration
+	groupWriterCache *store.GroupWriterCache // nil = use direct DB call (backward compat)
 }
 
 // NewContextFileInterceptor creates an interceptor backed by the given agent store.
@@ -98,6 +99,11 @@ func NewContextFileInterceptor(as store.AgentStore, workspace string) *ContextFi
 		maxEntries: defaultContextCacheMax,
 		ttl:        defaultContextCacheTTL,
 	}
+}
+
+// SetGroupWriterCache sets the shared cache for group writer permission checks (defense-in-depth).
+func (b *ContextFileInterceptor) SetGroupWriterCache(c *store.GroupWriterCache) {
+	b.groupWriterCache = c
 }
 
 // ReadFile attempts to read a context file from the DB (with cache).
@@ -259,7 +265,13 @@ func (b *ContextFileInterceptor) WriteFile(ctx context.Context, path, content st
 			senderID := store.SenderIDFromContext(ctx)
 			if senderID != "" {
 				numericID := strings.SplitN(senderID, "|", 2)[0]
-				isWriter, err := b.agentStore.IsGroupFileWriter(ctx, agentID, userID, numericID)
+				var isWriter bool
+				var err error
+				if b.groupWriterCache != nil {
+					isWriter, err = b.groupWriterCache.IsWriter(ctx, agentID, userID, numericID)
+				} else {
+					isWriter, err = b.agentStore.IsGroupFileWriter(ctx, agentID, userID, numericID)
+				}
 				if err != nil {
 					slog.Warn("security.group_file_writer_check_failed",
 						"error", err, "sender", numericID, "file", fileName, "group", userID)

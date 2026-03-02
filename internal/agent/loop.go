@@ -104,6 +104,9 @@ type Loop struct {
 
 	// Thinking level for extended thinking support
 	thinkingLevel string
+
+	// Group writer cache for system prompt injection (managed mode)
+	groupWriterCache *store.GroupWriterCache
 }
 
 // AgentEvent is emitted during agent execution for WS broadcasting.
@@ -169,6 +172,9 @@ type LoopConfig struct {
 
 	// Thinking level: "off", "low", "medium", "high" (from agent other_config)
 	ThinkingLevel string
+
+	// Group writer cache for system prompt injection (managed mode)
+	GroupWriterCache *store.GroupWriterCache
 }
 
 func NewLoop(cfg LoopConfig) *Loop {
@@ -228,6 +234,7 @@ func NewLoop(cfg LoopConfig) *Loop {
 		maxMessageChars:       cfg.MaxMessageChars,
 		builtinToolSettings:   cfg.BuiltinToolSettings,
 		thinkingLevel:         cfg.ThinkingLevel,
+		groupWriterCache:      cfg.GroupWriterCache,
 	}
 }
 
@@ -539,6 +546,12 @@ func (l *Loop) runLoop(ctx context.Context, req RunRequest) (*RunResult, error) 
 	var mediaResults []MediaResult // media files from tool MEDIA: results
 	var deliverables []string      // actual content from tool outputs (for team task results)
 
+	// Team task orphan detection: track team_tasks create vs spawn calls.
+	// If the LLM creates tasks but forgets to spawn, inject a reminder.
+	var teamTaskCreates int  // count of team_tasks action=create calls
+	var teamTaskSpawns  int  // count of spawn calls with team_task_id
+	var teamTaskRetried bool // only retry once to prevent infinite loops
+
 	// Inject retry hook so channels can update placeholder on LLM retries.
 	ctx = providers.WithRetryHook(ctx, func(attempt, maxAttempts int, err error) {
 		l.emit(AgentEvent{
@@ -629,6 +642,23 @@ func (l *Loop) runLoop(ctx context.Context, req RunRequest) (*RunResult, error) 
 
 		// No tool calls → done
 		if len(resp.ToolCalls) == 0 {
+			// Guard: detect orphaned team_tasks create (created but not spawned).
+			// The LLM sometimes "forgets" step 2 (spawn) after creating a task.
+			// Inject a reminder and retry once so the task actually executes.
+			if teamTaskCreates > teamTaskSpawns && !teamTaskRetried {
+				teamTaskRetried = true
+				orphaned := teamTaskCreates - teamTaskSpawns
+				slog.Warn("team task orphan detected: created without spawn",
+					"agent", l.id, "orphaned", orphaned, "creates", teamTaskCreates, "spawns", teamTaskSpawns)
+				messages = append(messages,
+					providers.Message{Role: "assistant", Content: resp.Content},
+					providers.Message{
+						Role:    "user",
+						Content: fmt.Sprintf("[System] You created %d team task(s) but only spawned %d. Tasks without `spawn` will stay pending forever and never execute. Call `spawn` now for each pending task.", teamTaskCreates, teamTaskSpawns),
+					},
+				)
+				continue
+			}
 			finalContent = resp.Content
 			break
 		}
@@ -642,6 +672,19 @@ func (l *Loop) runLoop(ctx context.Context, req RunRequest) (*RunResult, error) 
 		}
 		messages = append(messages, assistantMsg)
 		pendingMsgs = append(pendingMsgs, assistantMsg)
+
+		// Track team_tasks create vs spawn for orphan detection
+		for _, tc := range resp.ToolCalls {
+			if tc.Name == "team_tasks" {
+				if action, _ := tc.Arguments["action"].(string); action == "create" {
+					teamTaskCreates++
+				}
+			} else if tc.Name == "spawn" {
+				if tid, _ := tc.Arguments["team_task_id"].(string); tid != "" {
+					teamTaskSpawns++
+				}
+			}
+		}
 
 		// Execute tool calls (parallel when multiple, sequential when single)
 		if len(resp.ToolCalls) == 1 {

@@ -8,17 +8,19 @@ import (
 	"strings"
 
 	"github.com/nextlevelbuilder/goclaw/internal/sandbox"
+	"github.com/nextlevelbuilder/goclaw/internal/store"
 )
 
 // EditTool performs search-and-replace edits on files.
 // Supports context file interceptor (managed mode) and sandbox routing.
 type EditTool struct {
-	workspace       string
-	restrict        bool
-	deniedPrefixes  []string // path prefixes to deny access to (e.g. .goclaw)
-	sandboxMgr      sandbox.Manager
-	contextFileIntc *ContextFileInterceptor
-	memIntc         *MemoryInterceptor
+	workspace        string
+	restrict         bool
+	deniedPrefixes   []string // path prefixes to deny access to (e.g. .goclaw)
+	sandboxMgr       sandbox.Manager
+	contextFileIntc  *ContextFileInterceptor
+	memIntc          *MemoryInterceptor
+	groupWriterCache *store.GroupWriterCache // nil = no group write restriction (standalone mode)
 }
 
 // DenyPaths adds path prefixes that edit must reject.
@@ -32,6 +34,11 @@ func (t *EditTool) SetContextFileInterceptor(intc *ContextFileInterceptor) {
 
 func (t *EditTool) SetMemoryInterceptor(intc *MemoryInterceptor) {
 	t.memIntc = intc
+}
+
+// SetGroupWriterCache enables group write permission checks (managed mode).
+func (t *EditTool) SetGroupWriterCache(c *store.GroupWriterCache) {
+	t.groupWriterCache = c
 }
 
 func NewEditTool(workspace string, restrict bool) *EditTool {
@@ -88,6 +95,13 @@ func (t *EditTool) Execute(ctx context.Context, args map[string]interface{}) *Re
 	}
 	if oldStr == newStr {
 		return ErrorResult("old_string and new_string are identical")
+	}
+
+	// Group write permission check (managed mode)
+	if t.groupWriterCache != nil {
+		if err := store.CheckGroupWritePermission(ctx, t.groupWriterCache); err != nil {
+			return ErrorResult(err.Error())
+		}
 	}
 
 	// Virtual FS: context files (managed mode)

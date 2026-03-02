@@ -299,6 +299,17 @@ func runGateway() {
 	}
 	os.MkdirAll(dataDir, 0755)
 
+	// Block exec from accessing sensitive directories (data dir, .goclaw, config file).
+	// Prevents `cp /app/data/config.json workspace/` and similar exfiltration.
+	if execTool, ok := toolsReg.Get("exec"); ok {
+		if et, ok := execTool.(*tools.ExecTool); ok {
+			et.DenyPaths(dataDir, ".goclaw/")
+			if cfgPath := os.Getenv("GOCLAW_CONFIG"); cfgPath != "" {
+				et.DenyPaths(cfgPath)
+			}
+		}
+	}
+
 	// --- Mode-based store creation ---
 	// Standalone: file-based adapters wrapping sessions/cron/pairing packages.
 	// Managed: Postgres stores from pg.NewPGStores.

@@ -8,6 +8,9 @@ import (
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
+
+	"github.com/nextlevelbuilder/goclaw/internal/bus"
+	"github.com/nextlevelbuilder/goclaw/pkg/protocol"
 )
 
 // handleWriterCommand handles /addwriter and /removewriter commands.
@@ -78,6 +81,10 @@ func (c *Channel) handleWriterCommand(ctx context.Context, message *telego.Messa
 			return
 		}
 		send(fmt.Sprintf("Added %s as a file writer.", targetName))
+		c.Bus().Broadcast(bus.Event{
+			Name:    protocol.EventCacheInvalidate,
+			Payload: bus.CacheInvalidatePayload{Kind: bus.CacheKindGroupFileWriters, Key: groupID},
+		})
 
 	case "remove":
 		// Prevent removing the last writer
@@ -92,6 +99,10 @@ func (c *Channel) handleWriterCommand(ctx context.Context, message *telego.Messa
 			return
 		}
 		send(fmt.Sprintf("Removed %s from file writers.", targetName))
+		c.Bus().Broadcast(bus.Event{
+			Name:    protocol.EventCacheInvalidate,
+			Payload: bus.CacheInvalidatePayload{Kind: bus.CacheKindGroupFileWriters, Key: groupID},
+		})
 	}
 }
 
