@@ -95,7 +95,7 @@ export function ChannelDetailPage({ instanceId, onBack }: ChannelDetailPageProps
       {/* Tabs */}
       <div className="max-w-4xl rounded-xl border bg-card p-3 shadow-sm sm:p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="credentials">Credentials</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>

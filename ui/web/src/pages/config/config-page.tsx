@@ -123,7 +123,7 @@ export function ConfigPage() {
         <TabsList
           variant={isMobile ? "default" : "line"}
           className={isMobile
-            ? "w-full overflow-x-auto"
+            ? "w-full overflow-x-auto overflow-y-hidden"
             : "w-44 shrink-0 sticky top-6 rounded-lg border bg-card p-3 shadow-sm"
           }
         >
