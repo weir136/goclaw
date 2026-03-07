@@ -60,7 +60,16 @@ func (m *ChatMethods) handleSend(ctx context.Context, client *gateway.Client, re
 	}
 
 	if params.AgentID == "" {
-		params.AgentID = "default"
+		// Extract agent key from session key (format: "agent:{key}:{rest}")
+		// so resuming an existing session routes to the correct agent.
+		if params.SessionKey != "" {
+			if agentKey, _ := sessions.ParseSessionKey(params.SessionKey); agentKey != "" {
+				params.AgentID = agentKey
+			}
+		}
+		if params.AgentID == "" {
+			params.AgentID = "default"
+		}
 	}
 
 	loop, err := m.agents.Get(params.AgentID)

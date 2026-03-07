@@ -10,7 +10,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { useChatSessions } from "./hooks/use-chat-sessions";
 import { useChatMessages } from "./hooks/use-chat-messages";
 import { useChatSend } from "./hooks/use-chat-send";
-import { isOwnSession } from "@/lib/session-key";
+import { isOwnSession, parseSessionKey } from "@/lib/session-key";
 
 export function ChatPage() {
   const { sessionKey: urlSessionKey } = useParams<{ sessionKey: string }>();
@@ -18,7 +18,13 @@ export function ChatPage() {
   const connected = useAuthStore((s) => s.connected);
   const userId = useAuthStore((s) => s.userId);
 
-  const [agentId, setAgentId] = useState("default");
+  const [agentId, setAgentId] = useState(() => {
+    if (urlSessionKey) {
+      const { agentId: parsed } = parseSessionKey(urlSessionKey);
+      if (parsed) return parsed;
+    }
+    return "default";
+  });
   const [sessionKey, setSessionKey] = useState(urlSessionKey ?? "");
 
   const {
@@ -78,10 +84,15 @@ export function ChatPage() {
 
   const handleSessionSelect = useCallback(
     (key: string) => {
+      // Sync agentId from session key to ensure correct routing
+      const { agentId: parsed } = parseSessionKey(key);
+      if (parsed && parsed !== agentId) {
+        setAgentId(parsed);
+      }
       setSessionKey(key);
       navigate(`/chat/${encodeURIComponent(key)}`);
     },
-    [navigate],
+    [navigate, agentId],
   );
 
   const handleAgentChange = useCallback(
