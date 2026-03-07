@@ -13,6 +13,7 @@ type AnnounceQueueItem struct {
 	Label      string
 	Status     string // "completed", "failed", "cancelled"
 	Result     string
+	Media      []string // media file paths from tool results
 	Runtime    time.Duration
 	Iterations int
 }

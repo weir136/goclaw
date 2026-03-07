@@ -59,6 +59,7 @@ type SubagentTask struct {
 	OriginSessionKey string `json:"originSessionKey,omitempty"` // exact parent session key for announce routing (WS uses non-standard format)
 	CreatedAt        int64  `json:"createdAt"`
 	CompletedAt      int64  `json:"completedAt,omitempty"`
+	Media            []string  `json:"-"` // media file paths from tool results
 	OriginTraceID    uuid.UUID `json:"-"` // parent trace for announce linking
 	OriginRootSpanID uuid.UUID `json:"-"` // parent agent's root span ID
 	cancelFunc       context.CancelFunc `json:"-"` // per-task context cancel

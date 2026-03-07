@@ -28,6 +28,7 @@ func (sm *SubagentManager) runTask(ctx context.Context, task *SubagentTask, call
 			Label:      task.Label,
 			Status:     task.Status,
 			Result:     task.Result,
+			Media:      task.Media,
 			Runtime:    elapsed,
 			Iterations: iterations,
 		}
@@ -74,6 +75,7 @@ func (sm *SubagentManager) runTask(ctx context.Context, task *SubagentTask, call
 				Content:  announceContent,
 				UserID:   task.OriginUserID,
 				Metadata: announceMeta,
+				Media:    task.Media,
 			})
 		}
 	}
@@ -163,6 +165,7 @@ func (sm *SubagentManager) executeTask(ctx context.Context, task *SubagentTask) 
 	}
 
 	// Run LLM iteration loop (similar to agent loop but simplified)
+	var mediaPaths []string
 	maxIterations := 20
 
 	for iteration < maxIterations {
@@ -223,6 +226,11 @@ func (sm *SubagentManager) executeTask(ctx context.Context, task *SubagentTask) 
 			argsJSON, _ := json.Marshal(tc.Arguments)
 			sm.emitToolSpan(subTraceCtx, toolStart, tc.Name, tc.ID, string(argsJSON), result.ForLLM, result.IsError)
 
+			// Capture media file paths from tool results (e.g. image generation).
+			if len(result.Media) > 0 {
+				mediaPaths = append(mediaPaths, result.Media...)
+			}
+
 			messages = append(messages, providers.Message{
 				Role:       "tool",
 				Content:    result.ForLLM,
@@ -237,6 +245,7 @@ func (sm *SubagentManager) executeTask(ctx context.Context, task *SubagentTask) 
 	}
 	task.Status = TaskStatusCompleted
 	task.Result = finalContent
+	task.Media = mediaPaths
 	sm.mu.Unlock()
 
 	slog.Info("subagent completed", "id", task.ID, "iterations", iteration)

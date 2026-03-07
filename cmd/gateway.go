@@ -245,6 +245,11 @@ func runGateway() {
 				if meta.OriginSessionKey != "" {
 					batchMeta["origin_session_key"] = meta.OriginSessionKey
 				}
+				// Collect media from all items in the batch.
+				var batchMedia []string
+				for _, item := range items {
+					batchMedia = append(batchMedia, item.Media...)
+				}
 				msgBus.PublishInbound(bus.InboundMessage{
 					Channel:  "system",
 					SenderID: senderID,
@@ -252,6 +257,7 @@ func runGateway() {
 					Content:  content,
 					UserID:   meta.OriginUserID,
 					Metadata: batchMeta,
+					Media:    batchMedia,
 				})
 			},
 			func(parentID string) int {
