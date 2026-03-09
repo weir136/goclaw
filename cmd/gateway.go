@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 
 	"github.com/google/uuid"
@@ -23,7 +22,6 @@ import (
 	"github.com/nextlevelbuilder/goclaw/internal/channels/whatsapp"
 	"github.com/nextlevelbuilder/goclaw/internal/channels/zalo"
 	zalopersonal "github.com/nextlevelbuilder/goclaw/internal/channels/zalo/personal"
-	"github.com/nextlevelbuilder/goclaw/internal/channels/zalo/personal/zalomethods"
 	"github.com/nextlevelbuilder/goclaw/internal/config"
 	"github.com/nextlevelbuilder/goclaw/internal/gateway"
 	"github.com/nextlevelbuilder/goclaw/internal/gateway/methods"
@@ -678,193 +676,13 @@ func runGateway() {
 	}
 
 	// Register config-based channels as fallback when no DB instances loaded.
-	if cfg.Channels.Telegram.Enabled && cfg.Channels.Telegram.Token != "" && instanceLoader == nil {
-		tg, err := telegram.New(cfg.Channels.Telegram, msgBus, pgStores.Pairing, nil, nil)
-		if err != nil {
-			slog.Error("failed to initialize telegram channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("telegram", tg)
-			slog.Info("telegram channel enabled (config)")
-		}
-	}
+	registerConfigChannels(cfg, channelMgr, msgBus, pgStores, instanceLoader)
 
-	if cfg.Channels.Discord.Enabled && cfg.Channels.Discord.Token != "" && instanceLoader == nil {
-		dc, err := discord.New(cfg.Channels.Discord, msgBus, nil)
-		if err != nil {
-			slog.Error("failed to initialize discord channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("discord", dc)
-			slog.Info("discord channel enabled (config)")
-		}
-	}
+	// Register channels/instances/links/teams RPC methods
+	wireChannelRPCMethods(server, pgStores, channelMgr, agentRouter, msgBus)
 
-	if cfg.Channels.WhatsApp.Enabled && cfg.Channels.WhatsApp.BridgeURL != "" && instanceLoader == nil {
-		wa, err := whatsapp.New(cfg.Channels.WhatsApp, msgBus, nil)
-		if err != nil {
-			slog.Error("failed to initialize whatsapp channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("whatsapp", wa)
-			slog.Info("whatsapp channel enabled (config)")
-		}
-	}
-
-	if cfg.Channels.Zalo.Enabled && cfg.Channels.Zalo.Token != "" && instanceLoader == nil {
-		z, err := zalo.New(cfg.Channels.Zalo, msgBus, pgStores.Pairing)
-		if err != nil {
-			slog.Error("failed to initialize zalo channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("zalo", z)
-			slog.Info("zalo channel enabled (config)")
-		}
-	}
-
-	if cfg.Channels.ZaloPersonal.Enabled && instanceLoader == nil {
-		zp, err := zalopersonal.New(cfg.Channels.ZaloPersonal, msgBus, pgStores.Pairing)
-		if err != nil {
-			slog.Error("failed to initialize zca channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("zalo_personal", zp)
-			slog.Info("zca (zalo personal) channel enabled (config)")
-		}
-	}
-
-	if cfg.Channels.Slack.Enabled && cfg.Channels.Slack.BotToken != "" && cfg.Channels.Slack.AppToken != "" && instanceLoader == nil {
-		sl, err := slackchannel.New(cfg.Channels.Slack, msgBus, nil)
-		if err != nil {
-			slog.Error("failed to initialize slack channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("slack", sl)
-			slog.Info("slack channel enabled (config)")
-		}
-	}
-
-	if cfg.Channels.Feishu.Enabled && cfg.Channels.Feishu.AppID != "" && instanceLoader == nil {
-		f, err := feishu.New(cfg.Channels.Feishu, msgBus, pgStores.Pairing)
-		if err != nil {
-			slog.Error("failed to initialize feishu channel", "error", err)
-		} else {
-			channelMgr.RegisterChannel("feishu", f)
-			slog.Info("feishu/lark channel enabled (config)")
-		}
-	}
-
-	// TODO: create_forum_topic tool — disabled for now, re-enable when needed.
-	// toolsReg.Register(tools.NewCreateForumTopicTool(func() tools.ForumTopicCreator {
-	// 	for _, name := range channelMgr.GetEnabledChannels() {
-	// 		ch, ok := channelMgr.GetChannel(name)
-	// 		if !ok { continue }
-	// 		if fc, ok := ch.(tools.ForumTopicCreator); ok { return fc }
-	// 	}
-	// 	return nil
-	// }))
-
-	// Register channels RPC methods (after channelMgr is initialized with all channels)
-	methods.NewChannelsMethods(channelMgr).Register(server.Router())
-
-	// Register channel instances WS RPC methods
-	if pgStores.ChannelInstances != nil {
-		methods.NewChannelInstancesMethods(pgStores.ChannelInstances, msgBus).Register(server.Router())
-		zalomethods.NewQRMethods(pgStores.ChannelInstances, msgBus).Register(server.Router())
-		zalomethods.NewContactsMethods(pgStores.ChannelInstances).Register(server.Router())
-	}
-
-	// Register agent links WS RPC methods
-	if pgStores.AgentLinks != nil && pgStores.Agents != nil {
-		methods.NewAgentLinksMethods(pgStores.AgentLinks, pgStores.Agents, agentRouter, msgBus).Register(server.Router())
-	}
-
-	// Register agent teams WS RPC methods
-	if pgStores.Teams != nil {
-		methods.NewTeamsMethods(pgStores.Teams, pgStores.Agents, pgStores.AgentLinks, agentRouter, msgBus).Register(server.Router())
-	}
-
-	// Cache invalidation: reload channel instances on changes.
-	// Runs in a goroutine because Reload() is heavy (stops channels, waits for polling exit,
-	// sleeps 500ms, reloads from DB, starts new channels) and Broadcast handlers must be non-blocking.
-	if instanceLoader != nil {
-		msgBus.Subscribe(bus.TopicCacheChannelInstances, func(event bus.Event) {
-			if event.Name != protocol.EventCacheInvalidate {
-				return
-			}
-			payload, ok := event.Payload.(bus.CacheInvalidatePayload)
-			if !ok || payload.Kind != bus.CacheKindChannelInstances {
-				return
-			}
-			go instanceLoader.Reload(context.Background())
-		})
-	}
-
-	// Wire pairing approval notification → channel (matching TS notifyPairingApproved).
-	botName := cfg.ResolveDisplayName("default")
-	pairingMethods.SetOnApprove(func(ctx context.Context, channel, chatID, senderID string) {
-		msg := fmt.Sprintf("✅ %s access approved. Send a message to start chatting.", botName)
-		// Group pairings need group_id metadata so channels (e.g. Zalo) route to group API.
-		if strings.HasPrefix(senderID, "group:") {
-			msgBus.PublishOutbound(bus.OutboundMessage{
-				Channel:  channel,
-				ChatID:   chatID,
-				Content:  msg,
-				Metadata: map[string]string{"group_id": chatID},
-			})
-		} else if err := channelMgr.SendToChannel(ctx, channel, chatID, msg); err != nil {
-			slog.Warn("failed to send pairing approval notification", "channel", channel, "chatID", chatID, "error", err)
-		}
-	})
-
-	// Wire pairing revocation → force disconnect active WebSocket sessions.
-	msgBus.Subscribe(bus.TopicPairingRevoked, func(event bus.Event) {
-		if event.Name != bus.EventPairingRevoked {
-			return
-		}
-		payload, ok := event.Payload.(bus.PairingRevokedPayload)
-		if !ok {
-			return
-		}
-		go server.DisconnectByPairing(payload.SenderID, payload.Channel)
-	})
-
-	// Cascade: when an agent becomes inactive, disable its linked channel instances.
-	if pgStores.ChannelInstances != nil {
-		ciStore := pgStores.ChannelInstances
-		msgBus.Subscribe(bus.TopicAgentStatusChanged, func(event bus.Event) {
-			if event.Name != bus.EventAgentStatusChanged {
-				return
-			}
-			payload, ok := event.Payload.(bus.AgentStatusChangedPayload)
-			if !ok || payload.NewStatus != store.AgentStatusInactive {
-				return
-			}
-			go func() {
-				agentID, err := uuid.Parse(payload.AgentID)
-				if err != nil {
-					return
-				}
-				all, err := ciStore.ListAll(context.Background())
-				if err != nil {
-					slog.Warn("cascade disable: failed to list channel instances", "error", err)
-					return
-				}
-				disabled := 0
-				for _, inst := range all {
-					if inst.AgentID == agentID && inst.Enabled {
-						if err := ciStore.Update(context.Background(), inst.ID, map[string]any{"enabled": false}); err != nil {
-							slog.Warn("cascade disable: failed to disable channel instance", "name", inst.Name, "error", err)
-						} else {
-							disabled++
-						}
-					}
-				}
-				if disabled > 0 {
-					slog.Info("cascade disabled channel instances for inactive agent", "agent_id", payload.AgentID, "count", disabled)
-					// Trigger channel reload so disabled instances are stopped.
-					msgBus.Broadcast(bus.Event{
-						Name:    protocol.EventCacheInvalidate,
-						Payload: bus.CacheInvalidatePayload{Kind: bus.CacheKindChannelInstances},
-					})
-				}
-			}()
-		})
-	}
+	// Wire channel event subscribers (cache invalidation, pairing, cascade disable)
+	wireChannelEventSubscribers(msgBus, server, pgStores, channelMgr, instanceLoader, pairingMethods, cfg)
 
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

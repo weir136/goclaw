@@ -10,6 +10,48 @@ import (
 	"github.com/nextlevelbuilder/goclaw/internal/config"
 )
 
+// resolveExistingAPIKey tries to find an existing API key from config or env vars.
+func resolveExistingAPIKey(cfg *config.Config, provider string) string {
+	key := resolveProviderAPIKey(cfg, provider)
+	if key != "" {
+		return key
+	}
+	if pi, ok := providerMap[provider]; ok && pi.envKey != "" {
+		if envKey := os.Getenv(pi.envKey); envKey != "" {
+			return envKey
+		}
+	}
+	return ""
+}
+
+// applyProviderAPIKey stores the API key in the correct config field.
+func applyProviderAPIKey(cfg *config.Config, provider, key string) {
+	switch provider {
+	case "openrouter":
+		cfg.Providers.OpenRouter.APIKey = key
+	case "anthropic":
+		cfg.Providers.Anthropic.APIKey = key
+	case "openai":
+		cfg.Providers.OpenAI.APIKey = key
+	case "groq":
+		cfg.Providers.Groq.APIKey = key
+	case "deepseek":
+		cfg.Providers.DeepSeek.APIKey = key
+	case "gemini":
+		cfg.Providers.Gemini.APIKey = key
+	case "mistral":
+		cfg.Providers.Mistral.APIKey = key
+	case "xai":
+		cfg.Providers.XAI.APIKey = key
+	case "minimax":
+		cfg.Providers.MiniMax.APIKey = key
+	case "cohere":
+		cfg.Providers.Cohere.APIKey = key
+	case "perplexity":
+		cfg.Providers.Perplexity.APIKey = key
+	}
+}
+
 func onboardGenerateToken(bytes int) string {
 	b := make([]byte, bytes)
 	_, _ = rand.Read(b)
