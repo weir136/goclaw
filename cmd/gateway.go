@@ -510,14 +510,16 @@ func runGateway() {
 	toolsReg.Register(tools.NewMessageTool())
 	slog.Info("session + message tools registered")
 
-	// Allow read_file to access skills directories (outside workspace).
+	// Allow read_file to access skills directories and CLI workspaces (outside workspace).
 	// Skills can live in ~/.goclaw/skills/, ~/.agents/skills/, ~/.goclaw/skills-store/, etc.
+	// CLI workspaces live in ~/.goclaw/cli-workspaces/ (agent working files).
 	homeDir, _ := os.UserHomeDir()
 	if readTool, ok := toolsReg.Get("read_file"); ok {
 		if pa, ok := readTool.(tools.PathAllowable); ok {
 			pa.AllowPaths(globalSkillsDir)
 			if homeDir != "" {
 				pa.AllowPaths(filepath.Join(homeDir, ".agents", "skills"))
+				pa.AllowPaths(filepath.Join(homeDir, ".goclaw", "cli-workspaces"))
 			}
 			// Also allow the skills store directory (uploaded skill content).
 			if pgStores.Skills != nil {
