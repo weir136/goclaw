@@ -11,7 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { InfoTip } from "@/pages/setup/info-tip";
 import { useAgents } from "@/pages/agents/hooks/use-agents";
 import { SummoningModal } from "@/pages/agents/summoning-modal";
-import { AGENT_PRESETS } from "@/pages/agents/agent-presets";
+import { useAgentPresets } from "@/pages/agents/agent-presets";
 import { useWsEvent } from "@/hooks/use-ws-event";
 import { slugify, isValidSlug } from "@/lib/slug";
 import type { ProviderData } from "@/types/provider";
@@ -30,6 +30,7 @@ interface StepAgentProps {
 export function StepAgent({ provider, model, onComplete, onBack, existingAgent }: StepAgentProps) {
   const { t } = useTranslation("setup");
   const { createAgent, updateAgent, deleteAgent, resummonAgent } = useAgents();
+  const agentPresets = useAgentPresets();
 
   const isEditing = !!existingAgent;
 
@@ -205,7 +206,7 @@ export function StepAgent({ provider, model, onComplete, onBack, existingAgent }
                 <InfoTip text={t("agent.personalityHint")} />
               </Label>
               <div className="flex flex-wrap gap-1.5">
-                {AGENT_PRESETS.map((preset) => (
+                {agentPresets.map((preset) => (
                   <button
                     key={preset.label}
                     type="button"
