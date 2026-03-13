@@ -20,7 +20,7 @@ interface TeamDetailPageProps {
 
 export function TeamDetailPage({ teamId, onBack }: TeamDetailPageProps) {
   const { t } = useTranslation("teams");
-  const { getTeam, getTeamTasks, addMember, removeMember, deleteTeam } = useTeams();
+  const { getTeam, getTeamTasks, approveTask, rejectTask, getKnownUsers, addMember, removeMember, deleteTeam } = useTeams();
   const [team, setTeam] = useState<TeamData | null>(null);
   const [members, setMembers] = useState<TeamMemberData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,7 +134,13 @@ export function TeamDetailPage({ teamId, onBack }: TeamDetailPageProps) {
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-4">
-            <TeamTasksTab teamId={teamId} getTeamTasks={getTeamTasks} />
+            <TeamTasksTab
+              teamId={teamId}
+              getTeamTasks={getTeamTasks}
+              getKnownUsers={getKnownUsers}
+              onApprove={approveTask}
+              onReject={rejectTask}
+            />
           </TabsContent>
 
           <TabsContent value="delegations" className="mt-4">

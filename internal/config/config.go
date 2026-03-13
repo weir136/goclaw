@@ -124,10 +124,6 @@ type AgentDefaults struct {
 	// Bootstrap context truncation limits (matching TS bootstrapMaxChars / bootstrapTotalMaxChars)
 	BootstrapMaxChars      int `json:"bootstrapMaxChars,omitempty"`      // per-file max before truncation (default 20000)
 	BootstrapTotalMaxChars int `json:"bootstrapTotalMaxChars,omitempty"` // total budget across all files (default 24000)
-	// IntentClassify enables LLM-based intent classification for messages sent while agent is busy.
-	// When enabled, status queries ("what are you doing?") get immediate replies instead of queueing.
-	// Default: true (nil = true).
-	IntentClassify *bool `json:"intent_classify,omitempty"`
 }
 
 // CompactionConfig configures session compaction behaviour.

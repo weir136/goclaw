@@ -37,11 +37,10 @@ export function ChatInput({ onSend, onAbort, isRunning, disabled }: ChatInputPro
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        if (isRunning) return;
         handleSend();
       }
     },
-    [handleSend, isRunning],
+    [handleSend],
   );
 
   const handleInput = useCallback(() => {
@@ -127,14 +126,24 @@ export function ChatInput({ onSend, onAbort, isRunning, disabled }: ChatInputPro
           className="flex-1 resize-none rounded-lg border bg-background px-4 py-2.5 text-base md:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
         />
         {isRunning ? (
-          <Button
-            variant="destructive"
-            size="icon-lg"
-            onClick={onAbort}
-            title={t("stopGeneration")}
-          >
-            <Square className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1">
+            <Button
+              size="icon-lg"
+              onClick={handleSend}
+              disabled={!value.trim() || disabled}
+              title={t("sendFollowUp")}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon-lg"
+              onClick={onAbort}
+              title={t("stopGeneration")}
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          </div>
         ) : (
           <Button
             size="icon-lg"

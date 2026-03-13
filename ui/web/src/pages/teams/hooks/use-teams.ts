@@ -58,12 +58,26 @@ export function useTeams() {
   );
 
   const getTeamTasks = useCallback(
-    async (teamId: string) => {
+    async (teamId: string, statusFilter?: string, userId?: string) => {
       const res = await ws.call<{ tasks: TeamTaskData[]; count: number }>(
         Methods.TEAMS_TASK_LIST,
-        { teamId },
+        { teamId, statusFilter, userId },
       );
       return res;
+    },
+    [ws],
+  );
+
+  const approveTask = useCallback(
+    async (taskId: string) => {
+      await ws.call(Methods.TEAMS_TASK_APPROVE, { task_id: taskId });
+    },
+    [ws],
+  );
+
+  const rejectTask = useCallback(
+    async (taskId: string, reason?: string) => {
+      await ws.call(Methods.TEAMS_TASK_REJECT, { task_id: taskId, reason });
     },
     [ws],
   );
@@ -100,5 +114,5 @@ export function useTeams() {
     [ws],
   );
 
-  return { teams, loading, load, createTeam, deleteTeam, getTeam, getTeamTasks, addMember, removeMember, updateTeamSettings, getKnownUsers };
+  return { teams, loading, load, createTeam, deleteTeam, getTeam, getTeamTasks, approveTask, rejectTask, addMember, removeMember, updateTeamSettings, getKnownUsers };
 }

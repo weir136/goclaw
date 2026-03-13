@@ -582,6 +582,17 @@ func (l *Loop) runLoop(ctx context.Context, req RunRequest) (*RunResult, error) 
 					}
 				}
 			}
+			// Mid-run injection (Point B): drain all buffered user follow-up messages
+			// before exiting. If found, save current assistant response and continue
+			// the loop so the LLM can respond to the injected messages.
+			if forLLM, forSession := l.drainInjectChannel(req.InjectCh, emitRun); len(forLLM) > 0 {
+				messages = append(messages, providers.Message{Role: "assistant", Content: resp.Content})
+				messages = append(messages, forLLM...)
+				pendingMsgs = append(pendingMsgs, providers.Message{Role: "assistant", Content: resp.Content})
+				pendingMsgs = append(pendingMsgs, forSession...)
+				continue
+			}
+
 			finalContent = resp.Content
 			finalThinking = resp.Thinking
 			break
@@ -911,6 +922,14 @@ func (l *Loop) runLoop(ctx context.Context, req RunRequest) (*RunResult, error) 
 			if loopStuck {
 				break
 			}
+		}
+
+		// Mid-run injection (Point A): drain any user follow-up messages
+		// that arrived during tool execution. Append them after tool results
+		// so the next LLM call sees: [tool results...] + [user follow-ups...].
+		if forLLM, forSession := l.drainInjectChannel(req.InjectCh, emitRun); len(forLLM) > 0 {
+			messages = append(messages, forLLM...)
+			pendingMsgs = append(pendingMsgs, forSession...)
 		}
 	}
 

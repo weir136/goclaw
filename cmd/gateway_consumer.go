@@ -243,10 +243,9 @@ func consumeInboundMessages(ctx context.Context, msgBus *bus.MessageBus, agents 
 		}
 
 		// Intent classify fast-path: when agent is busy on DM, classify user intent
-		// to detect status queries, cancel requests, etc. without queueing.
+		// to detect status queries, cancel requests, or steer/new_task for mid-run injection.
 		// Only for DM (maxConcurrent=1) where messages queue behind the active run.
-		intentClassifyEnabled := cfg.Agents.Defaults.IntentClassify == nil || *cfg.Agents.Defaults.IntentClassify
-		if intentClassifyEnabled && maxConcurrent == 1 && agents.IsSessionBusy(sessionKey) {
+		if maxConcurrent == 1 && agents.IsSessionBusy(sessionKey) {
 			if loop, ok := agentLoop.(*agent.Loop); ok && loop.Provider() != nil {
 				locale := msg.Metadata["locale"]
 				if locale == "" {
@@ -277,8 +276,26 @@ func consumeInboundMessages(ctx context.Context, msgBus *bus.MessageBus, agents 
 						})
 					}
 					return
-				default:
-					// steer / new_task → queue as normal
+				case agent.IntentSteer, agent.IntentNewTask:
+					// Mid-run injection: inject into the running loop instead of queueing.
+					injected := agents.InjectMessage(sessionKey, agent.InjectedMessage{
+						Content: msg.Content,
+						UserID:  userID,
+					})
+					if injected {
+						slog.Info("inbound: injected mid-run message",
+							"intent", string(intent), "session", sessionKey)
+						msgBus.PublishOutbound(bus.OutboundMessage{
+							Channel:  msg.Channel,
+							ChatID:   msg.ChatID,
+							Content:  i18n.T(locale, i18n.MsgInjectedAck),
+							Metadata: outMeta,
+						})
+						return
+					}
+					// Fallback: injection failed (channel full) → fall through to scheduler queue
+					slog.Info("inbound: injection failed, queueing as normal",
+						"intent", string(intent), "session", sessionKey)
 				}
 			}
 		}

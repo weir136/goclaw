@@ -334,6 +334,11 @@ type RunRequest struct {
 	HideInput     bool   // don't persist input message in session history (announce runs)
 	ContentSuffix string // appended to assistant response before saving (e.g. image markdown for WS)
 
+	// Mid-run message injection channel (nil = disabled).
+	// When set, the loop drains this channel at turn boundaries to inject
+	// user follow-up messages into the running conversation.
+	InjectCh <-chan InjectedMessage
+
 	// Delegation context (set when running as a delegate agent)
 	DelegationID  string // delegation ID for event correlation
 	TeamID        string // team ID (if delegation is team-scoped)

@@ -147,6 +147,51 @@ func (ph *PendingHistory) Record(historyKey string, entry HistoryEntry, limit in
 	ph.MaybeCompact(historyKey, count, ph.compactionCfg)
 }
 
+// loadFromDB fetches pending messages from DB for a single historyKey,
+// populates RAM cache, and returns converted entries.
+// Called when RAM has no entries but DB store is available.
+func (ph *PendingHistory) loadFromDB(historyKey string) []HistoryEntry {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	msgs, err := ph.store.ListByKey(ctx, ph.channelName, historyKey)
+	if err != nil {
+		slog.Warn("pending_history.db_fallback_failed",
+			"channel", ph.channelName, "key", historyKey, "error", err)
+		return nil
+	}
+	if len(msgs) == 0 {
+		return nil
+	}
+
+	entries := make([]HistoryEntry, 0, len(msgs))
+	for _, m := range msgs {
+		entries = append(entries, HistoryEntry{
+			Sender:    m.Sender,
+			SenderID:  m.SenderID,
+			Body:      m.Body,
+			Timestamp: m.CreatedAt,
+			MessageID: m.PlatformMsgID,
+		})
+	}
+
+	// Populate RAM cache (double-check under lock to not overwrite concurrent Record())
+	ph.mu.Lock()
+	if len(ph.entries[historyKey]) == 0 {
+		ph.entries[historyKey] = entries
+		ph.removeFromOrder(historyKey)
+		ph.order = append(ph.order, historyKey)
+		ph.evictOldKeys()
+	} else {
+		// Another goroutine populated meanwhile — use the fresher RAM data
+		entries = make([]HistoryEntry, len(ph.entries[historyKey]))
+		copy(entries, ph.entries[historyKey])
+	}
+	ph.mu.Unlock()
+
+	return entries
+}
+
 // BuildContext retrieves pending history for a group and formats it as context
 // to prepend to the current message.
 func (ph *PendingHistory) BuildContext(historyKey, currentMessage string, limit int) string {
@@ -159,6 +204,12 @@ func (ph *PendingHistory) BuildContext(historyKey, currentMessage string, limit 
 	entriesCopy := make([]HistoryEntry, len(entries))
 	copy(entriesCopy, entries)
 	ph.mu.Unlock()
+
+	// DB fallback: if RAM is empty but we have a DB store, load from DB.
+	// Handles post-restart and LRU-eviction scenarios.
+	if len(entriesCopy) == 0 && ph.store != nil {
+		entriesCopy = ph.loadFromDB(historyKey)
+	}
 
 	if len(entriesCopy) == 0 {
 		return currentMessage
@@ -178,15 +229,20 @@ func (ph *PendingHistory) BuildContext(historyKey, currentMessage string, limit 
 }
 
 // GetEntries returns a copy of pending entries for a group.
+// Falls back to DB when RAM is empty (post-restart / LRU eviction).
 func (ph *PendingHistory) GetEntries(historyKey string) []HistoryEntry {
 	ph.mu.Lock()
-	defer ph.mu.Unlock()
 	entries := ph.entries[historyKey]
 	if len(entries) == 0 {
+		ph.mu.Unlock()
+		if ph.store != nil {
+			return ph.loadFromDB(historyKey)
+		}
 		return nil
 	}
 	result := make([]HistoryEntry, len(entries))
 	copy(result, entries)
+	ph.mu.Unlock()
 	return result
 }
 

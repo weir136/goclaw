@@ -131,6 +131,7 @@ func init() {
 		MsgStatusPhaseCompact:  "Phase: Compacting context...",
 		MsgStatusPhaseDefault:  "Phase: Processing...",
 		MsgCancelledReply:      "✋ Cancelled. What would you like to do next?",
+		MsgInjectedAck:         "Got it, I'll incorporate that into what I'm working on.",
 
 		// Knowledge Graph
 		MsgEntityIDRequired:       "entity_id is required",

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,18 +6,56 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { formatDate } from "@/lib/format";
 import type { TeamTaskData } from "@/types/team";
-import { taskStatusBadgeVariant } from "./task-utils";
+import { taskStatusBadgeVariant, isTaskActionable } from "./task-utils";
 
 interface TaskDetailDialogProps {
   task: TeamTaskData;
   onClose: () => void;
+  onApprove: (taskId: string) => Promise<void>;
+  onReject: (taskId: string, reason?: string) => Promise<void>;
 }
 
-export function TaskDetailDialog({ task, onClose }: TaskDetailDialogProps) {
+export function TaskDetailDialog({ task, onClose, onApprove, onReject }: TaskDetailDialogProps) {
   const { t } = useTranslation("teams");
+  const [reason, setReason] = useState("");
+  const [acting, setActing] = useState(false);
+
+  const handleApprove = async () => {
+    setActing(true);
+    try {
+      await onApprove(task.id);
+      onClose();
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleReject = async () => {
+    setActing(true);
+    try {
+      await onReject(task.id, reason || undefined);
+      onClose();
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setActing(true);
+    try {
+      await onReject(task.id, reason || "Cancelled by user");
+      onClose();
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const showActions = isTaskActionable(task.status);
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
@@ -37,7 +76,7 @@ export function TaskDetailDialog({ task, onClose }: TaskDetailDialogProps) {
             <div>
               <span className="text-muted-foreground">{t("tasks.detail.status")}</span>{" "}
               <Badge variant={taskStatusBadgeVariant(task.status)} className="text-xs">
-                {task.status.replace("_", " ")}
+                {t(`tasks.status.${task.status}`, task.status.replace("_", " "))}
               </Badge>
             </div>
             <div>
@@ -85,6 +124,34 @@ export function TaskDetailDialog({ task, onClose }: TaskDetailDialogProps) {
               <pre className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words text-sm">
                 {task.result}
               </pre>
+            </div>
+          )}
+
+          {/* Actions */}
+          {showActions && (
+            <div className="space-y-3 border-t pt-4">
+              <Input
+                placeholder={t("tasks.actions.reasonPlaceholder")}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="text-base md:text-sm"
+              />
+              <div className="flex justify-end gap-2">
+                {task.status === "pending_approval" ? (
+                  <>
+                    <Button variant="outline" size="sm" onClick={handleReject} disabled={acting}>
+                      {t("tasks.actions.reject")}
+                    </Button>
+                    <Button size="sm" onClick={handleApprove} disabled={acting}>
+                      {t("tasks.actions.approve")}
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="destructive" size="sm" onClick={handleCancel} disabled={acting}>
+                    {t("tasks.actions.cancel")}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>

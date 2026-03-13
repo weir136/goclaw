@@ -72,6 +72,28 @@
       "taskId": "任务 ID：",
       "noDescription": "无描述",
       "noResult": "暂无结果"
+    },
+    "actions": {
+      "approve": "批准",
+      "reject": "拒绝",
+      "cancel": "取消",
+      "reasonPlaceholder": "原因（可选）...",
+      "confirmCancel": "取消此任务？",
+      "confirmReject": "拒绝此任务？"
+    },
+    "filter": {
+      "all": "全部",
+      "active": "进行中",
+      "completed": "已完成",
+      "allUsers": "所有用户"
+    },
+    "status": {
+      "pending": "待处理",
+      "pending_approval": "待审批",
+      "in_progress": "进行中",
+      "completed": "已完成",
+      "blocked": "被阻塞",
+      "failed": "失败"
     }
   },
   "delegations": {
@@ -145,6 +167,12 @@
     "failedDelete": "删除Team失败",
     "failedUpdate": "更新Team失败",
     "failedAddMember": "添加成员失败",
-    "failedRemoveMember": "移除成员失败"
+    "failedRemoveMember": "移除成员失败",
+    "taskApproved": "任务已批准",
+    "taskRejected": "任务已拒绝",
+    "taskCancelled": "任务已取消",
+    "failedApproveTask": "批准任务失败",
+    "failedRejectTask": "拒绝任务失败",
+    "failedCancelTask": "取消任务失败"
   }
 }

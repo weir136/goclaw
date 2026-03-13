@@ -72,6 +72,28 @@
       "taskId": "Task ID:",
       "noDescription": "No description",
       "noResult": "No result yet"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "reasonPlaceholder": "Reason (optional)...",
+      "confirmCancel": "Cancel this task?",
+      "confirmReject": "Reject this task?"
+    },
+    "filter": {
+      "all": "All",
+      "active": "Active",
+      "completed": "Completed",
+      "allUsers": "All users"
+    },
+    "status": {
+      "pending": "pending",
+      "pending_approval": "pending approval",
+      "in_progress": "in progress",
+      "completed": "completed",
+      "blocked": "blocked",
+      "failed": "failed"
     }
   },
   "delegations": {
@@ -145,6 +167,12 @@
     "failedDelete": "Failed to delete team",
     "failedUpdate": "Failed to update team",
     "failedAddMember": "Failed to add member",
-    "failedRemoveMember": "Failed to remove member"
+    "failedRemoveMember": "Failed to remove member",
+    "taskApproved": "Task approved",
+    "taskRejected": "Task rejected",
+    "taskCancelled": "Task cancelled",
+    "failedApproveTask": "Failed to approve task",
+    "failedRejectTask": "Failed to reject task",
+    "failedCancelTask": "Failed to cancel task"
   }
 }

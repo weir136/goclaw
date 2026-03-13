@@ -72,6 +72,28 @@
       "taskId": "ID nhiệm vụ:",
       "noDescription": "Không có mô tả",
       "noResult": "Chưa có kết quả"
+    },
+    "actions": {
+      "approve": "Duyệt",
+      "reject": "Từ chối",
+      "cancel": "Huỷ",
+      "reasonPlaceholder": "Lý do (tùy chọn)...",
+      "confirmCancel": "Huỷ nhiệm vụ này?",
+      "confirmReject": "Từ chối nhiệm vụ này?"
+    },
+    "filter": {
+      "all": "Tất cả",
+      "active": "Đang hoạt động",
+      "completed": "Đã hoàn thành",
+      "allUsers": "Tất cả người dùng"
+    },
+    "status": {
+      "pending": "chờ xử lý",
+      "pending_approval": "chờ duyệt",
+      "in_progress": "đang thực hiện",
+      "completed": "hoàn thành",
+      "blocked": "bị chặn",
+      "failed": "thất bại"
     }
   },
   "delegations": {
@@ -145,6 +167,12 @@
     "failedDelete": "Không thể xóa nhóm",
     "failedUpdate": "Không thể cập nhật nhóm",
     "failedAddMember": "Không thể thêm thành viên",
-    "failedRemoveMember": "Không thể xóa thành viên"
+    "failedRemoveMember": "Không thể xóa thành viên",
+    "taskApproved": "Đã duyệt nhiệm vụ",
+    "taskRejected": "Đã từ chối nhiệm vụ",
+    "taskCancelled": "Đã huỷ nhiệm vụ",
+    "failedApproveTask": "Không thể duyệt nhiệm vụ",
+    "failedRejectTask": "Không thể từ chối nhiệm vụ",
+    "failedCancelTask": "Không thể huỷ nhiệm vụ"
   }
 }

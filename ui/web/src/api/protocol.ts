@@ -132,6 +132,8 @@ export const Methods = {
   TEAMS_GET: "teams.get",
   TEAMS_DELETE: "teams.delete",
   TEAMS_TASK_LIST: "teams.tasks.list",
+  TEAMS_TASK_APPROVE: "teams.tasks.approve",
+  TEAMS_TASK_REJECT: "teams.tasks.reject",
   TEAMS_MEMBERS_ADD: "teams.members.add",
   TEAMS_MEMBERS_REMOVE: "teams.members.remove",
   TEAMS_UPDATE: "teams.update",

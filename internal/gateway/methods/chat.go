@@ -128,9 +128,25 @@ func (m *ChatMethods) handleSend(ctx context.Context, client *gateway.Client, re
 		runCtxBase = store.WithUserID(runCtxBase, userID)
 	}
 
+	// Mid-run injection: if session already has an active run, inject the message
+	// into the running loop instead of starting a new concurrent run.
+	if m.agents.IsSessionBusy(sessionKey) {
+		injected := m.agents.InjectMessage(sessionKey, agent.InjectedMessage{
+			Content: params.Message,
+			UserID:  userID,
+		})
+		if injected {
+			client.SendResponse(protocol.NewOKResponse(req.ID, map[string]any{
+				"injected": true,
+			}))
+			return
+		}
+		// Fallback: injection failed (channel full), proceed with new run
+	}
+
 	// Create cancellable context for abort support (matching TS AbortController pattern).
 	runCtx, cancel := context.WithCancel(runCtxBase)
-	m.agents.RegisterRun(runID, sessionKey, params.AgentID, cancel)
+	injectCh := m.agents.RegisterRun(runID, sessionKey, params.AgentID, cancel)
 
 	// Run agent asynchronously - events are broadcast via the event system
 	go func() {
@@ -175,6 +191,7 @@ func (m *ChatMethods) handleSend(ctx context.Context, client *gateway.Client, re
 			RunID:      runID,
 			UserID:     userID,
 			Stream:     params.Stream,
+			InjectCh:   injectCh,
 		})
 
 		if err != nil {

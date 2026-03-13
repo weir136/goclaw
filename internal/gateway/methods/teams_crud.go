@@ -125,7 +125,9 @@ func (m *TeamsMethods) handleDelete(ctx context.Context, client *gateway.Client,
 // --- Task List (admin view) ---
 
 type teamsTaskListParams struct {
-	TeamID string `json:"teamId"`
+	TeamID       string `json:"teamId"`
+	StatusFilter string `json:"statusFilter,omitempty"`
+	UserID       string `json:"userId,omitempty"`
 }
 
 func (m *TeamsMethods) handleTaskList(ctx context.Context, client *gateway.Client, req *protocol.RequestFrame) {
@@ -152,7 +154,12 @@ func (m *TeamsMethods) handleTaskList(ctx context.Context, client *gateway.Clien
 		return
 	}
 
-	tasks, err := m.teamStore.ListTasks(ctx, teamID, "newest", store.TeamTaskFilterAll, "")
+	statusFilter := params.StatusFilter
+	if statusFilter == "" {
+		statusFilter = store.TeamTaskFilterAll
+	}
+
+	tasks, err := m.teamStore.ListTasks(ctx, teamID, "newest", statusFilter, params.UserID)
 	if err != nil {
 		client.SendResponse(protocol.NewErrorResponse(req.ID, protocol.ErrInternal, err.Error()))
 		return

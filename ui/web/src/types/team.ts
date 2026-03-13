@@ -36,12 +36,13 @@ export interface TeamTaskData {
   team_id: string;
   subject: string;
   description?: string;
-  status: "pending" | "in_progress" | "completed" | "blocked";
+  status: "pending" | "pending_approval" | "in_progress" | "completed" | "blocked" | "failed";
   owner_agent_id?: string;
   owner_agent_key?: string;
   blocked_by?: string[];
   priority: number;
   result?: string;
+  user_id?: string;
   created_at?: string;
   updated_at?: string;
 }

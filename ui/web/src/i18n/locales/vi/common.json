@@ -76,6 +76,7 @@
   "selectProvider": "Chọn provider",
   "sendMessage": "Gửi tin nhắn... (Shift+Enter để xuống dòng)",
   "sendMessageTitle": "Gửi tin nhắn",
+  "sendFollowUp": "Gửi tin nhắn bổ sung",
   "attachFile": "Đính kèm tệp",
   "skillActivated": "Đã kích hoạt",
   "skillActivating": "Đang kích hoạt...",
