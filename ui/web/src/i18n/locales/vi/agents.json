@@ -7,6 +7,9 @@
   "emptyDescription": "Tạo agent đầu tiên để bắt đầu.",
   "noMatchTitle": "Không tìm thấy agent phù hợp",
   "noMatchDescription": "Thử từ khóa tìm kiếm khác.",
+  "viewCard": "Dạng thẻ",
+  "viewList": "Dạng danh sách",
+  "allCreators": "Tất cả người tạo",
   "presets": {
     "foxSpirit": {
       "label": "🐱 Tiểu Hồ",

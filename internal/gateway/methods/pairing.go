@@ -3,6 +3,7 @@ package methods
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	"github.com/nextlevelbuilder/goclaw/internal/bus"
 	"github.com/nextlevelbuilder/goclaw/internal/gateway"
@@ -215,7 +216,11 @@ func (m *PairingMethods) handleBrowserPairingStatus(ctx context.Context, client 
 		return
 	}
 
-	if m.service.IsPaired(params.SenderID, "browser") {
+	paired, pairErr := m.service.IsPaired(params.SenderID, "browser")
+	if pairErr != nil {
+		slog.Warn("security.pairing_check_failed", "sender_id", params.SenderID, "error", pairErr)
+	}
+	if paired {
 		client.SendResponse(protocol.NewOKResponse(req.ID, map[string]any{
 			"status": "approved",
 		}))

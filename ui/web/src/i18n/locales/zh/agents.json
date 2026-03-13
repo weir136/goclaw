@@ -7,6 +7,9 @@
   "emptyDescription": "创建您的第一个Agent以开始使用。",
   "noMatchTitle": "未找到匹配的Agent",
   "noMatchDescription": "请尝试其他搜索词。",
+  "viewCard": "卡片视图",
+  "viewList": "列表视图",
+  "allCreators": "所有创建者",
   "presets": {
     "foxSpirit": {
       "label": "🐱 小狐",

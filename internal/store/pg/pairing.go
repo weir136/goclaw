@@ -140,10 +140,13 @@ func (s *PGPairingStore) RevokePairing(senderID, channel string) error {
 	return nil
 }
 
-func (s *PGPairingStore) IsPaired(senderID, channel string) bool {
+func (s *PGPairingStore) IsPaired(senderID, channel string) (bool, error) {
 	var count int64
-	s.db.QueryRow("SELECT COUNT(*) FROM paired_devices WHERE sender_id = $1 AND channel = $2", senderID, channel).Scan(&count)
-	return count > 0
+	err := s.db.QueryRow("SELECT COUNT(*) FROM paired_devices WHERE sender_id = $1 AND channel = $2", senderID, channel).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("pairing check query: %w", err)
+	}
+	return count > 0, nil
 }
 
 func (s *PGPairingStore) ListPending() []store.PairingRequestData {

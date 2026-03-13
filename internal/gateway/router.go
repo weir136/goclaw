@@ -121,15 +121,23 @@ func (r *MethodRouter) handleConnect(ctx context.Context, client *Client, req *p
 	ps := r.server.pairingService
 
 	// Path 3a: Reconnecting with a previously-paired sender_id
-	if ps != nil && params.SenderID != "" && ps.IsPaired(params.SenderID, "browser") {
-		client.role = permissions.RoleOperator
-		client.authenticated = true
-		client.userID = params.UserID
-		client.pairedSenderID = params.SenderID
-		client.pairedChannel = "browser"
-		slog.Info("browser pairing authenticated", "sender_id", params.SenderID, "client", client.id)
-		r.sendConnectResponse(client, req.ID)
-		return
+	if ps != nil && params.SenderID != "" {
+		paired, pairErr := ps.IsPaired(params.SenderID, "browser")
+		if pairErr != nil {
+			slog.Warn("security.pairing_check_failed, assuming paired (fail-open)",
+				"sender_id", params.SenderID, "error", pairErr)
+			paired = true
+		}
+		if paired {
+			client.role = permissions.RoleOperator
+			client.authenticated = true
+			client.userID = params.UserID
+			client.pairedSenderID = params.SenderID
+			client.pairedChannel = "browser"
+			slog.Info("browser pairing authenticated", "sender_id", params.SenderID, "client", client.id)
+			r.sendConnectResponse(client, req.ID)
+			return
+		}
 	}
 
 	// Path 3b: No token, no valid pairing → initiate browser pairing (if service available)

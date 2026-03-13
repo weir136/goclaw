@@ -113,7 +113,7 @@ func builtinToolSeedData() []store.BuiltinToolDef {
 		{Name: "evaluate_loop", DisplayName: "Evaluate Loop", Description: "Run a generate→evaluate→revise loop between two agents for quality-critical output", Category: "delegation", Enabled: true,
 			Requires: []string{"managed_mode", "agent_links"},
 		},
-		{Name: "handoff", DisplayName: "Handoff", Description: "Transfer the conversation to another agent — the user will talk directly to that agent", Category: "delegation", Enabled: true,
+		{Name: "handoff", DisplayName: "Handoff", Description: "Transfer the conversation to another agent — the user will talk directly to that agent", Category: "delegation", Enabled: false,
 			Requires: []string{"managed_mode", "agent_links"},
 		},
 

@@ -148,7 +148,15 @@ func (c *Channel) handleMessage(ctx context.Context, update telego.Update) {
 		default: // "pairing" or unknown → secure default
 			paired := false
 			if c.pairingService != nil {
-				paired = c.pairingService.IsPaired(userID, c.Name()) || c.pairingService.IsPaired(senderID, c.Name())
+				p1, err1 := c.pairingService.IsPaired(userID, c.Name())
+				p2, err2 := c.pairingService.IsPaired(senderID, c.Name())
+				if err1 != nil || err2 != nil {
+					slog.Warn("security.pairing_check_failed, assuming paired (fail-open)",
+						"user_id", userID, "channel", c.Name(), "err1", err1, "err2", err2)
+					paired = true
+				} else {
+					paired = p1 || p2
+				}
 			}
 			inAllowList := c.HasAllowList() && (c.IsAllowed(userID) || c.IsAllowed(senderID))
 
@@ -267,7 +275,13 @@ func (c *Channel) handleMessage(ctx context.Context, update telego.Update) {
 	if isGroup && topicCfg.groupPolicy == "pairing" && c.pairingService != nil {
 		if _, cached := c.approvedGroups.Load(chatIDStr); !cached {
 			groupSenderID := fmt.Sprintf("group:%d", chatID)
-			if c.pairingService.IsPaired(groupSenderID, c.Name()) {
+			paired, err := c.pairingService.IsPaired(groupSenderID, c.Name())
+			if err != nil {
+				slog.Warn("security.pairing_check_failed, assuming paired (fail-open)",
+					"group_sender", groupSenderID, "channel", c.Name(), "error", err)
+				paired = true
+			}
+			if paired {
 				c.approvedGroups.Store(chatIDStr, true)
 			} else {
 				c.sendGroupPairingReply(ctx, chatID, chatIDStr, groupSenderID, localKey, messageThreadID, message.Chat.Title)

@@ -7,6 +7,9 @@
   "emptyDescription": "Create your first agent to get started.",
   "noMatchTitle": "No matching agents",
   "noMatchDescription": "Try a different search term.",
+  "viewCard": "Card view",
+  "viewList": "List view",
+  "allCreators": "All creators",
   "presets": {
     "foxSpirit": {
       "label": "🐱 Fox Spirit",
