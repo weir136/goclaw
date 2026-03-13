@@ -220,23 +220,23 @@ flowchart TD
 
 ### 6 种检测模式
 
-|| 模式 | 描述 | 示例 |
-||---------|-------------|---------|
-|| `ignore_instructions` | 试图覆盖先前的指令 | "Ignore all previous instructions" |
-|| `role_override` | 试图重新定义 Agent 的角色 | "You are now a different assistant" |
-|| `system_tags` | 注入伪造的系统级标签 | `<\|im_start\|>system`、`[SYSTEM]` |
-|| `instruction_injection` | 插入新指令 | "New instructions:"、"override:" |
-|| `null_bytes` | 空字节注入 | 消息中的 `\x00` 字符 |
-|| `delimiter_escape` | 试图逃逸上下文边界 | "end of system"、`</instructions>` |
+| 模式 | 描述 | 示例 |
+|---------|-------------|---------|
+| `ignore_instructions` | 试图覆盖先前的指令 | "Ignore all previous instructions" |
+| `role_override` | 试图重新定义 Agent 的角色 | "You are now a different assistant" |
+| `system_tags` | 注入伪造的系统级标签 | `<\|im_start\|>system`、`[SYSTEM]` |
+| `instruction_injection` | 插入新指令 | "New instructions:"、"override:" |
+| `null_bytes` | 空字节注入 | 消息中的 `\x00` 字符 |
+| `delimiter_escape` | 试图逃逸上下文边界 | "end of system"、`</instructions>` |
 
 ### 4 种动作模式
 
-|| 动作 | 行为 |
-||--------|----------|
-|| `"off"` | 完全禁用扫描 |
-|| `"log"` | 在 info 级别记录（`security.injection_detected`），继续处理 |
-|| `"warn"`（默认） | 在 warn 级别记录（`security.injection_detected`），继续处理 |
-|| `"block"` | 在 warn 级别记录并返回错误，中止请求 |
+| 动作 | 行为 |
+|--------|----------|
+| `"off"` | 完全禁用扫描 |
+| `"log"` | 在 info 级别记录（`security.injection_detected`），继续处理 |
+| `"warn"`（默认） | 在 warn 级别记录（`security.injection_detected`），继续处理 |
+| `"block"` | 在 warn 级别记录并返回错误，中止请求 |
 
 所有安全事件使用 `slog.Warn("security.injection_detected")` 约定。
 
@@ -294,12 +294,12 @@ flowchart TD
 
 ### 默认值
 
-|| 参数 | 默认值 | 描述 |
-||-----------|---------|-------------|
-|| `keepLastAssistants` | 3 | 受保护不被修剪的最近 assistant 消息数 |
-|| `softTrimRatio` | 0.3 | 触发第 1 轮的 token 比率阈值 |
-|| `hardClearRatio` | 0.5 | 触发第 2 轮的 token 比率阈值 |
-|| `minPrunableToolChars` | 50,000 | 有资格进行硬清除的最小工具结果长度 |
+| 参数 | 默认值 | 描述 |
+|-----------|---------|-------------|
+| `keepLastAssistants` | 3 | 受保护不被修剪的最近 assistant 消息数 |
+| `softTrimRatio` | 0.3 | 触发第 1 轮的 token 比率阈值 |
+| `hardClearRatio` | 0.5 | 触发第 2 轮的 token 比率阈值 |
+| `minPrunableToolChars` | 50,000 | 有资格进行硬清除的最小工具结果长度 |
 
 ### 保护区域
 
@@ -374,11 +374,11 @@ flowchart TD
 
 ### 活跃运行跟踪
 
-|| 方法 | 行为 |
-||--------|----------|
-|| `RegisterRun(runID, sessionKey, agentID, cancel)` | 注册新的活跃运行及其取消函数 |
-|| `AbortRun(runID, sessionKey)` | 取消运行（中止前验证 sessionKey 匹配） |
-|| `AbortRunsForSession(sessionKey)` | 取消属于某个会话的所有活跃运行 |
+| 方法 | 行为 |
+|--------|----------|
+| `RegisterRun(runID, sessionKey, agentID, cancel)` | 注册新的活跃运行及其取消函数 |
+| `AbortRun(runID, sessionKey)` | 取消运行（中止前验证 sessionKey 匹配） |
+| `AbortRunsForSession(sessionKey)` | 取消属于某个会话的所有活跃运行 |
 
 ---
 
@@ -414,15 +414,15 @@ Loop 通过 `onEvent` 回调发布事件。WebSocket 网关将这些作为 `Even
 
 ### 事件类型
 
-|| 事件 | 时机 | 载荷 |
-||-------|------|---------|
-|| `run.started` | 运行开始 | -- |
-|| `chunk` | 流式：LLM 的每个文本片段 | `{"content": "..."}` |
-|| `tool.call` | 工具执行开始 | `{"name": "...", "id": "..."}` |
-|| `tool.result` | 工具执行完成 | `{"name": "...", "id": "...", "is_error": bool}` |
-|| `run.completed` | 运行成功完成 | -- |
-|| `run.failed` | 运行出错完成 | `{"error": "..."}` |
-|| `handoff` | 对话转移到另一个 Agent | `{"from": "...", "to": "...", "reason": "..."}` |
+| 事件 | 时机 | 载荷 |
+|-------|------|---------|
+| `run.started` | 运行开始 | -- |
+| `chunk` | 流式：LLM 的每个文本片段 | `{"content": "..."}` |
+| `tool.call` | 工具执行开始 | `{"name": "...", "id": "..."}` |
+| `tool.result` | 工具执行完成 | `{"name": "...", "id": "...", "is_error": bool}` |
+| `run.completed` | 运行成功完成 | -- |
+| `run.failed` | 运行出错完成 | `{"error": "..."}` |
+| `handoff` | 对话转移到另一个 Agent | `{"from": "...", "to": "...", "reason": "..."}` |
 
 ### 事件流
 
@@ -468,33 +468,33 @@ flowchart TD
 
 ### 3 种 Span 类型
 
-|| Span 类型 | 描述 |
-||-----------|-------------|
-|| **Root Agent Span** | 覆盖完整运行的父 span。包含 agent ID、session key 和最终状态。 |
-|| **LLM Call Span** | 每次 LLM 调用一个。记录提供商、模型、token 计数（输入/输出）和持续时间。 |
-|| **Tool Call Span** | 每次工具执行一个。记录工具名称、是否出错和持续时间。 |
+| Span 类型 | 描述 |
+|-----------|-------------|
+| **Root Agent Span** | 覆盖完整运行的父 span。包含 agent ID、session key 和最终状态。 |
+| **LLM Call Span** | 每次 LLM 调用一个。记录提供商、模型、token 计数（输入/输出）和持续时间。 |
+| **Tool Call Span** | 每次工具执行一个。记录工具名称、是否出错和持续时间。 |
 
 ### 详细模式
 
 通过 `GOCLAW_TRACE_VERBOSE=1` 环境变量启用。
 
-|| 字段 | 普通模式 | 详细模式 |
-||-------|-------------|--------------|
-|| `OutputPreview` | 前 500 字符 | 前 500 字符 |
-|| `InputPreview` | 不记录 | 完整 LLM 输入消息 JSON，在 50,000 字符处截断 |
+| 字段 | 普通模式 | 详细模式 |
+|-------|-------------|--------------|
+| `OutputPreview` | 前 500 字符 | 前 500 字符 |
+| `InputPreview` | 不记录 | 完整 LLM 输入消息 JSON，在 50,000 字符处截断 |
 
 ---
 
 ## 13. 文件参考
 
-|| 文件 | 职责 |
-||------|---------------|
-|| `internal/agent/loop.go` | 核心 Loop 结构、RunRequest/RunResult、LLM 迭代循环、工具执行、事件发送 |
-|| `internal/agent/loop_history.go` | 历史管道：limitHistoryTurns、sanitizeHistory、摘要注入 |
-|| `internal/agent/pruning.go` | 上下文修剪：2 轮软修剪和硬清除算法 |
-|| `internal/agent/systemprompt.go` | 系统提示组装（15+ 部分）、PromptFull 和 PromptMinimal 模式 |
-|| `internal/agent/resolver.go` | ManagedResolver：从 PostgreSQL 延迟创建 Loop、提供商解析、引导加载 |
-|| `internal/agent/loop_tracing.go` | Trace 和 span 创建、详细模式输入捕获、span 最终化 |
-|| `internal/agent/input_guard.go` | 输入守卫：6 个正则模式、4 种动作模式、安全日志 |
-|| `internal/agent/sanitize.go` | 7 步输出清理管道 |
-|| `internal/agent/memoryflush.go` | 压缩前内存刷新：带 write_file 工具的嵌入式 Agent 轮次 |
+| 文件 | 职责 |
+|------|---------------|
+| `internal/agent/loop.go` | 核心 Loop 结构、RunRequest/RunResult、LLM 迭代循环、工具执行、事件发送 |
+| `internal/agent/loop_history.go` | 历史管道：limitHistoryTurns、sanitizeHistory、摘要注入 |
+| `internal/agent/pruning.go` | 上下文修剪：2 轮软修剪和硬清除算法 |
+| `internal/agent/systemprompt.go` | 系统提示组装（15+ 部分）、PromptFull 和 PromptMinimal 模式 |
+| `internal/agent/resolver.go` | ManagedResolver：从 PostgreSQL 延迟创建 Loop、提供商解析、引导加载 |
+| `internal/agent/loop_tracing.go` | Trace 和 span 创建、详细模式输入捕获、span 最终化 |
+| `internal/agent/input_guard.go` | 输入守卫：6 个正则模式、4 种动作模式、安全日志 |
+| `internal/agent/sanitize.go` | 7 步输出清理管道 |
+| `internal/agent/memoryflush.go` | 压缩前内存刷新：带 write_file 工具的嵌入式 Agent 轮次 |
