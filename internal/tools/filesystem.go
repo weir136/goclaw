@@ -79,7 +79,7 @@ func (t *ReadFileTool) Parameters() map[string]any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
-				"description": "Path to the file to read",
+				"description": "File path (relative to workspace, or absolute)",
 			},
 		},
 		"required": []string{"path"},

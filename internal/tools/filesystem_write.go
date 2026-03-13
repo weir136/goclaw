@@ -63,7 +63,7 @@ func (t *WriteFileTool) Parameters() map[string]any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
-				"description": "Path to the file to write",
+				"description": "File path (relative to workspace, or absolute)",
 			},
 			"content": map[string]any{
 				"type":        "string",

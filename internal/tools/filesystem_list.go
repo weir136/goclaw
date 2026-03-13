@@ -52,7 +52,7 @@ func (t *ListFilesTool) Parameters() map[string]any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
-				"description": "Directory path to list (default: workspace root)",
+				"description": "Directory path (relative to workspace; omit for workspace root)",
 			},
 		},
 	}

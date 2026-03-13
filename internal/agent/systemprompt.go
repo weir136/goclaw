@@ -82,7 +82,7 @@ var coreToolSummaries = map[string]string{
 	"read_document":    "Analyze documents (PDF, DOCX, etc.) attached to the conversation. Call this when you see <media:document> tags. If this tool fails, use a relevant skill instead (e.g. pdf skill with exec tool). The path attribute in <media:document path=\"...\"> is a directly accessible file in your workspace — use it directly, no need to copy",
 	"create_image":            "Generate images from text descriptions using AI",
 	"create_audio":            "Generate music or sound effects from text descriptions using AI",
-	"knowledge_graph_search":  "Search entities and traverse relationships in the knowledge graph",
+	"knowledge_graph_search":  "Find people, projects, and their connections — use for relationship questions (who works with whom, project dependencies) that memory_search may miss",
 	"handoff":                 "Transfer conversation to another agent (ONLY when user explicitly asks to switch agents — NOT for task delegation)",
 	"evaluate_loop":           "Run a generate→evaluate→revise loop between two agents for quality-critical tasks",
 	"delegate_search":         "Search for agents by expertise to find the right delegation target",
@@ -244,7 +244,7 @@ func BuildSystemPrompt(cfg SystemPromptConfig) string {
 	if !isMinimal && cfg.HasMemory {
 		memReminder := "Reminder: Before answering questions about prior work, decisions, or preferences, always run memory_search first."
 		if cfg.HasKnowledgeGraph {
-			memReminder += " When the question involves people, relationships, or how things connect, run knowledge_graph_search to find entities and multi-hop connections that memory_search alone may miss."
+			memReminder += " Also run knowledge_graph_search when the question involves people, teams, projects, or connections — it finds relationship paths that memory_search misses."
 		}
 		lines = append(lines, memReminder, "")
 	}
@@ -413,7 +413,7 @@ func buildMemoryRecallSection(hasKG bool) []string {
 	}
 	if hasKG {
 		lines = append(lines,
-			"When the question involves people, relationships, or how things connect, also run `knowledge_graph_search` — it finds entities and multi-hop connections (e.g. \"who does X work with?\", \"what projects is Y involved in?\") that memory_search alone may miss.",
+			"Also run `knowledge_graph_search` alongside memory_search when the question involves people, teams, projects, or connections between things. KG search is faster for relationship questions (e.g. \"who works with Minh?\", \"what projects is team X involved in?\", \"what depends on GoClaw?\") — it finds multi-hop connections that memory_search alone may miss.",
 			"",
 		)
 	}
@@ -428,7 +428,7 @@ func buildMemoryRecallSection(hasKG bool) []string {
 func buildWorkspaceSection(workspace string, sandboxEnabled bool, containerDir string) []string {
 	// Matching TS: when sandboxed, display container workdir; add guidance about host paths for file tools.
 	displayDir := workspace
-	guidance := "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise."
+	guidance := "All file tool paths resolve relative to this directory. Use relative paths (e.g. \"docs/notes.md\", \".\") — do not guess absolute paths."
 	if sandboxEnabled && containerDir != "" {
 		displayDir = containerDir
 		guidance = fmt.Sprintf(

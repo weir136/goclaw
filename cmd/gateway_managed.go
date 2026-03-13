@@ -242,11 +242,17 @@ func wireExtras(
 		slog.Info("memory layering enabled (Postgres)")
 	}
 
-	// Wire knowledge graph store on KG tool
+	// Wire knowledge graph store on KG tool + hint in memory_search results
 	if stores.KnowledgeGraph != nil {
 		if kgTool, ok := toolsReg.Get("knowledge_graph_search"); ok {
 			if kgt, ok := kgTool.(*tools.KnowledgeGraphSearchTool); ok {
 				kgt.SetKGStore(stores.KnowledgeGraph)
+			}
+		}
+		// Enable KG hint in memory_search results
+		if searchTool, ok := toolsReg.Get("memory_search"); ok {
+			if mst, ok := searchTool.(*tools.MemorySearchTool); ok {
+				mst.SetHasKG(true)
 			}
 		}
 		slog.Info("knowledge graph tool wired (Postgres)")

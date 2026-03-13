@@ -62,7 +62,7 @@ func (t *EditTool) Parameters() map[string]any {
 		"properties": map[string]any{
 			"path": map[string]any{
 				"type":        "string",
-				"description": "Path to the file to edit",
+				"description": "File path (relative to workspace, or absolute)",
 			},
 			"old_string": map[string]any{
 				"type":        "string",

@@ -198,7 +198,7 @@ func (t *ExecTool) Parameters() map[string]any {
 			},
 			"working_dir": map[string]any{
 				"type":        "string",
-				"description": "Optional working directory for the command",
+				"description": "Working directory for the command (default: workspace root)",
 			},
 		},
 		"required": []string{"command"},

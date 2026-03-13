@@ -161,7 +161,8 @@ func (sm *SubagentManager) executeTask(ctx context.Context, task *SubagentTask) 
 	sm.emitSubagentSpanStart(traceCtx, subRootSpanID, taskStart, task, model)
 
 	// Build subagent system prompt (matching TS buildSubagentSystemPrompt pattern).
-	systemPrompt := sm.buildSubagentSystemPrompt(task, task.spawnConfig)
+	workspace := ToolWorkspaceFromCtx(ctx)
+	systemPrompt := sm.buildSubagentSystemPrompt(task, task.spawnConfig, workspace)
 
 	messages := []providers.Message{
 		{Role: "system", Content: systemPrompt},
